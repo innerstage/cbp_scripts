@@ -1,29 +1,41 @@
 import pandas as pd
 import us
 import csv
-pd.options.display.min_rows = 3000
+from util import MISSING_NAICS
+
 
 # CHUNKS GENERATOR
-names=["naics", "empflag", "emp", "ap", "est", "geoid", "year", "pums_code"]
-df_gen = pd.read_csv("cbp_dump.csv", chunksize=1000000, names=names)
+names = ["naics", "empflag", "emp_nf", "emp", "ap_nf", "ap", "est", 
+         "n1_4", "n5_9", "n10_19", "n_20_49", "n50_99", "n100_249", "n250_499", "n500_999", "n1000",
+         "geoid", "year", "pums_code"]
+
+chunksize = 1000000
+N = sum(1 for row in open("cbp_dump.csv", "r")) // chunksize + 1
+print("N = {:,}".format(N))
+
+df_gen = pd.read_csv("cbp_dump.csv", chunksize=chunksize, names=names)
 
 # NAICS CODES
-naics_df = pd.read_excel("6-digit_2012_Codes.xls", skiprows=1)
-naics_map = {str(code):name for (code,name) in zip(naics_df["Unnamed: 0"], naics_df["Unnamed: 1"])}
+#naics_df = pd.read_excel("6-digit_2012_Codes.xls", skiprows=1)
+#naics_map = {str(code):name for (code,name) in zip(naics_df["Unnamed: 0"], naics_df["Unnamed: 1"])}
+naics_df = pd.read_csv("naics2017.csv")
+naics_map = {code.replace("-","").replace("/",""):desc for (code,desc) in zip(naics_df["NAICS"], naics_df["DESCRIPTION"])}
+naics_map = {**naics_map, **MISSING_NAICS}
 
 # FIPS CODES
 states_dict = us.states.mapping('fips', 'name')
 
-n = 0
+i = 0
 
 for df in df_gen:
-    n += 1
-    print("{}/58 | {:.2f}%\n".format(n, n/58*100))
+    i += 1
+    print("{}/{} | {:.2f}%\n".format(i, N, i/N*100))
 
-    df["naics"] = df["naics"].astype(str).str.replace("-","")
+    df = df[["naics", "emp", "ap", "est", "geoid", "year"]]
+
+    df["naics"] = df["naics"].astype(str).str.replace("-","").str.replace("/","")
     df["naics_len"] = df["naics"].str.len()
     df = df[df["naics_len"]==6]
-    df = df.drop(columns=["empflag", "pums_code", "naics_len"])
 
     df["naics_name"] = df["naics"].map(naics_map)
 
@@ -33,7 +45,7 @@ for df in df_gen:
 
     df = df[["year", "geoid", "state", "naics_code", "naics_name", "Total Establishments", "Total Employees", "Total Annual Payroll"]]
 
-    if n==1:
+    if i==1:
         df.to_csv("cbp_data_by_state.csv", quoting=csv.QUOTE_NONNUMERIC, mode="a", index=False)
     else:
         df.to_csv("cbp_data_by_state.csv", header=False, quoting=csv.QUOTE_NONNUMERIC, mode="a", index=False)
