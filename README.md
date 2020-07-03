@@ -9,3 +9,7 @@
 7. The resulting file `cbp_data_by_msa.csv` has around 60% of NANs on the MSAs, because not all the FIPS codes have a MSA assigned, I checked that all the NaNs fall in this category here: https://www.dol.gov/owcp/regs/feeschedule/fee/Effective_May_16_2004_County_and_State_FIPS.htm, so those rows can be dropped at MSA level.
 8. Both files show 110 NaN NAICS codes, so I manually created a dictionary for the missing entries, effectively reducing the NaN values from 68% to 61% on the MSAs file, and to 0% on the States file.
 9. The dump was moved to Hercules along with the pipeline to process it there.
+10. Made both files available to download directly from Hercules:
+
+CBP Data by MSA: http://1299.datawheel.us:88/cbp_data_by_msa.csv
+CBP Data by State: http://1299.datawheel.us:88/cbp_data_by_state.csv
